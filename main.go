@@ -3,13 +3,14 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"log"
-	_ "modernc.org/sqlite"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"gopkg.in/yaml.v2"
+	_ "modernc.org/sqlite"
 
 	"github.com/spf13/cobra"
 )
@@ -256,24 +257,6 @@ AllowedIPs = %s
 	return configBuilder.String(), nil
 }
 
-// 应用服务器配置文件
-func (um *UserManager) ApplyServerConfig(configPath string) error {
-	cmd := exec.Command("wg-quick", "strip", configPath)
-	stripOut, err := cmd.Output()
-	if err != nil {
-		return err
-	}
-
-	cmd = exec.Command("wg", "syncconf", "wg0", "/dev/stdin")
-	cmd.Stdin = strings.NewReader(string(stripOut))
-	err = cmd.Run()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func LoadServerConfig(filePath string) (*ServerConfig, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -313,13 +296,8 @@ func Setup() *cobra.Command {
 			fmt.Println(config)
 
 			// 将配置写入文件
-			configPath := "wg.conf"
+			configPath := "./wg.conf"
 			err = os.WriteFile(configPath, []byte(config), 0644)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			err = userManager.ApplyServerConfig(configPath)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -358,7 +336,15 @@ func Add() *cobra.Command {
 				log.Fatal(err)
 			}
 
-			fmt.Printf("User %s added successfully\n", userID)
+			users, err := userManager.GetAllUsers()
+			if err != nil {
+				log.Fatal(err)
+			}
+			for _, user := range users {
+				if user.UserID == userID {
+					fmt.Printf("%s", generateConfig(*serverConfig, user))
+				}
+			}
 		},
 	}
 	addUserCmd.Flags().String("id", "", "User ID")
@@ -368,7 +354,7 @@ func Add() *cobra.Command {
 }
 func Delete() *cobra.Command {
 	var deleteUserCmd = &cobra.Command{
-		Use:   "deleteuser",
+		Use:   "deluser",
 		Short: "Delete a user from VPN",
 		Run: func(cmd *cobra.Command, args []string) {
 			userManager, err := NewUserManager("./users.db")
@@ -390,6 +376,7 @@ func Delete() *cobra.Command {
 	deleteUserCmd.Flags().String("id", "", "User ID")
 	return deleteUserCmd
 }
+
 func Get() *cobra.Command {
 	var getUserCmd = &cobra.Command{
 		Use:   "getuser",
