@@ -75,11 +75,23 @@ func (um *UserManager) createTable() error {
 }
 
 func (um *UserManager) AddUser(user *UserConfig) error {
-	// 查询表中最大的 IP
-	var maxIP string
-	err := um.db.QueryRow("SELECT MAX(ip) FROM users").Scan(&maxIP)
-	if err != nil && err != sql.ErrNoRows {
+	// 查询表中是否存在数据
+	var count int
+	err := um.db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	if err != nil {
 		return err
+	}
+
+	var maxIP string
+
+	if count == 0 {
+		maxIP = "10.1.1.1"
+	} else {
+		// 查询表中最大的 IP
+		err := um.db.QueryRow("SELECT MAX(ip) FROM users").Scan(&maxIP)
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
 	}
 
 	// 解析最大的 IP，并加一
