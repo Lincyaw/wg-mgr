@@ -115,7 +115,7 @@ func (um *UserManager) AddUser(user *UserConfig) error {
 	user.PrivateKey = privateKey
 	user.PublicKey = publicKey
 	if user.AllowedIPs == "" {
-		user.AllowedIPs = newIP + "/32"
+		user.AllowedIPs = newIP + "/24"
 	}
 
 	stmt, err := um.db.Prepare("INSERT INTO users(user_id, public_key, private_key, ip, allowed_ips, endpoint, persistent_keepalive) VALUES(?, ?, ?, ?, ?, ?, ?)")
@@ -189,7 +189,7 @@ func generateConfig(serverConfig ServerConfig, user UserConfig) string {
 
 	configBuilder.WriteString(fmt.Sprintf(`[Interface]
 PrivateKey = %s
-Address = %s
+Address = %s/32
 `, user.PrivateKey, user.IP))
 
 	configBuilder.WriteString(fmt.Sprintf(`
