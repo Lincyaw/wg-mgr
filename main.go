@@ -216,7 +216,7 @@ func (um *UserManager) GenerateServerConfig(serverConfig ServerConfig) (string, 
 	configBuilder.WriteString(fmt.Sprintf(`[Interface]
 PrivateKey = %s
 Address = %s
-ListenPort = %s
+ListenPort = %d
 `, serverConfig.PrivateKey, serverConfig.IP, serverConfig.Port))
 
 	if serverConfig.DNS != "" {
