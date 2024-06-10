@@ -323,6 +323,9 @@ func Add() *cobra.Command {
 			}
 
 			userID, _ := cmd.Flags().GetString("id")
+			if userID == "" {
+				log.Fatal("You must provide a user ID")
+			}
 			allowedIPs, _ := cmd.Flags().GetString("allowedips")
 			endpoint := fmt.Sprintf("%s:%d", serverConfig.ServerIP, serverConfig.Port)
 			persistentKeepalive := 25
