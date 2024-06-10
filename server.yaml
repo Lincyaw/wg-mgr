@@ -11,3 +11,4 @@ mtu: 1450
 post_up: "iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE"
 #pre_down: ""
 post_down: "iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE"
+ip_pool: "100.10.10.0/24"
