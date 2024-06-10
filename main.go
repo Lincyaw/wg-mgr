@@ -183,6 +183,7 @@ func generateKeys() (string, string, error) {
 	return privateKey, publicKey, nil
 }
 
+// generate user config
 func generateConfig(serverConfig ServerConfig, user UserConfig) string {
 	var configBuilder strings.Builder
 
@@ -195,7 +196,7 @@ Address = %s
 [Peer]
 PublicKey = %s
 AllowedIPs = %s
-`, user.PublicKey, user.AllowedIPs))
+`, serverConfig.PublicKey, user.AllowedIPs))
 
 	if user.Endpoint != "" {
 		configBuilder.WriteString(fmt.Sprintf("Endpoint = %s\n", user.Endpoint))
@@ -207,6 +208,7 @@ AllowedIPs = %s
 	return configBuilder.String()
 }
 
+// generate server config
 func (um *UserManager) GenerateServerConfig(serverConfig ServerConfig) (string, error) {
 	users, err := um.GetAllUsers()
 	if err != nil {
