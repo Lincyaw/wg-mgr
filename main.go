@@ -247,13 +247,6 @@ ListenPort = %d
 PublicKey = %s
 AllowedIPs = %s
 `, user.PublicKey, user.AllowedIPs))
-
-		if user.Endpoint != "" {
-			configBuilder.WriteString(fmt.Sprintf("Endpoint = %s\n", user.Endpoint))
-		}
-		if user.PersistentKeepalive != 0 {
-			configBuilder.WriteString(fmt.Sprintf("PersistentKeepalive = %d\n", user.PersistentKeepalive))
-		}
 	}
 
 	return configBuilder.String(), nil
