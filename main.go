@@ -87,7 +87,7 @@ func (um *UserManager) AddUser(user *UserConfig) error {
 	var maxIP string
 
 	if count == 0 {
-		maxIP = "10.1.1.1"
+		maxIP = "100.10.10.1"
 	} else {
 		// 查询表中最大的 IP
 		err := um.db.QueryRow("SELECT MAX(ip) FROM users").Scan(&maxIP)
