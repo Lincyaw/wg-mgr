@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"log"
 	"os"
@@ -180,4 +181,31 @@ func GetAllUsers() *cobra.Command {
 		},
 	}
 	return getAllUsersCmd
+}
+
+func Server() *cobra.Command {
+	serverCmd := &cobra.Command{
+		Use:   "server",
+		Short: "Run server",
+		Run: func(cmd *cobra.Command, args []string) {
+			r := gin.Default()
+
+			r.POST("/setup", setupHandler)
+			r.POST("/adduser", addUserHandler)
+			r.POST("/deluser", deleteUserHandler)
+			r.POST("/getuser", getUserHandler)
+			r.POST("/getall", getAllUsersHandler)
+
+			addr, _ := cmd.Flags().GetString("addr")
+			if addr == "" {
+				addr = ":8080"
+			}
+
+			if err := r.Run(addr); err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+	serverCmd.Flags().String("addr", "", "ip:port")
+	return serverCmd
 }
