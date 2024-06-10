@@ -1,0 +1,13 @@
+server_ip: "1.1.1.1"
+port: 3000
+# wg genkey | tee privatekey | wg pubkey > publickey
+private_key: "IIbFSqttBbF7gtRb5tKY4Ttb0ZK8rhOPsHysK0QjH2g="
+public_key: "zlOEMUnIoBOoXTjOxAHbZ1MCjvFKZsHNhPCuTAVpSHM="
+ip: "10.0.0.1/24"
+dns: "1.1.1.1,8.8.8.8"
+#table: "12345"
+mtu: 1450
+#pre_up: ""
+post_up: "iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE"
+#pre_down: ""
+post_down: "iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE"
