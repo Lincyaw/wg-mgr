@@ -249,7 +249,7 @@ ListenPort = %d
 		configBuilder.WriteString(fmt.Sprintf(`[Peer]
 PublicKey = %s
 AllowedIPs = %s
-`, user.PublicKey, user.AllowedIPs))
+`, user.PublicKey, user.IP+"/32"))
 	}
 
 	return configBuilder.String(), nil
