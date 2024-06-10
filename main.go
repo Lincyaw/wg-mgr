@@ -413,10 +413,31 @@ func Get() *cobra.Command {
 	getUserCmd.Flags().String("id", "", "User ID")
 	return getUserCmd
 }
+func GetAllUsers() *cobra.Command {
+	var getAllUsersCmd = &cobra.Command{
+		Use:   "getall",
+		Short: "Get all users from VPN",
+		Run: func(cmd *cobra.Command, args []string) {
+			userManager, err := NewUserManager("./users.db")
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer userManager.db.Close()
+			users, err := userManager.GetAllUsers()
+			if err != nil {
+				log.Fatal(err)
+			}
+			for _, user := range users {
+				fmt.Printf("[ID]: %s, [IP]: %s\n", user.UserID, user.IP)
+			}
+		},
+	}
+	return getAllUsersCmd
+}
 func main() {
 	var rootCmd = &cobra.Command{Use: "vpn-tool"}
 
-	rootCmd.AddCommand(Setup(), Add(), Delete(), Get())
+	rootCmd.AddCommand(Setup(), Add(), Delete(), Get(), GetAllUsers())
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
