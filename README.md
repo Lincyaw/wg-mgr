@@ -17,7 +17,7 @@ Usage:
 wg syncconf wg0 <(wg-quick strip wg0) # if already have installed interface
 
 wg-quick up wg0 # else
-``
+```
 
 2. Add user
 
