@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 
 	"gopkg.in/yaml.v2"
 	_ "modernc.org/sqlite"
@@ -427,9 +428,15 @@ func GetAllUsers() *cobra.Command {
 			if err != nil {
 				log.Fatal(err)
 			}
+
+			w := tabwriter.NewWriter(os.Stdout, 15, 20, 0, ' ', tabwriter.TabIndent)
+			fmt.Fprintf(w, "ID\tIP")
+
 			for _, user := range users {
-				fmt.Printf("[ID]: %s, [IP]: %s\n", user.UserID, user.IP)
+				fmt.Fprintf(w, "%s\t%s\t\n", user.UserID, user.IP)
 			}
+
+			w.Flush()
 		},
 	}
 	return getAllUsersCmd
