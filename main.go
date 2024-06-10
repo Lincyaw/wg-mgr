@@ -430,7 +430,7 @@ func GetAllUsers() *cobra.Command {
 			}
 
 			w := tabwriter.NewWriter(os.Stdout, 15, 20, 0, ' ', tabwriter.TabIndent)
-			fmt.Fprintf(w, "ID\tIP")
+			fmt.Fprintf(w, "ID\tIP\n")
 
 			for _, user := range users {
 				fmt.Fprintf(w, "%s\t%s\t\n", user.UserID, user.IP)
