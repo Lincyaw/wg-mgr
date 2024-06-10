@@ -12,11 +12,14 @@ Usage:
 1. Update server config
 
 ```bash
+# case 1
 ./vpn-tool setup > /etc/wireguard/wg0.conf
+wg syncconf wg0 <(wg-quick strip wg0) 
 
-wg syncconf wg0 <(wg-quick strip wg0) # if already have installed interface
-
-wg-quick up wg0 # else
+# case 2
+./vpn-tool setup > /etc/wireguard/wg0.conf
+wg-quick down wg0 # optional
+wg-quick up wg0 
 ```
 
 2. Add user

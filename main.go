@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -91,7 +92,7 @@ func (um *UserManager) AddUser(user *UserConfig) error {
 	} else {
 		// 查询表中最大的 IP
 		err := um.db.QueryRow("SELECT MAX(ip) FROM users").Scan(&maxIP)
-		if err != nil && err != sql.ErrNoRows {
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return err
 		}
 	}
@@ -208,7 +209,7 @@ AllowedIPs = %s
 	return configBuilder.String()
 }
 
-// generate server config
+// GenerateServerConfig generate server config
 func (um *UserManager) GenerateServerConfig(serverConfig ServerConfig) (string, error) {
 	users, err := um.GetAllUsers()
 	if err != nil {
