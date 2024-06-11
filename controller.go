@@ -2,16 +2,18 @@ package main
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"os"
-	"text/tabwriter"
-
-	"github.com/gin-gonic/gin"
 )
 
 type AddUserRequest struct {
 	ID         string `json:"id"`
 	AllowedIPs string `json:"allowedips"`
+	PreUp      string `json:"pre_up"`
+	PostUp     string `json:"post_up"`
+	PreDown    string `json:"pre_down"`
+	PostDown   string `json:"post_down"`
 }
 
 type DeleteUserRequest struct {
@@ -22,58 +24,63 @@ type GetUserRequest struct {
 	ID string `json:"id"`
 }
 
+type Response struct {
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
+}
+
 func setupHandler(c *gin.Context) {
 	userManager, err := NewUserManager("./users.db")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error", "data": gin.H{"error": err.Error()}})
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
 	defer userManager.db.Close()
 
 	serverConfig, err := LoadServerConfig("server.yaml")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error", "data": gin.H{"error": err.Error()}})
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
 
 	config, err := userManager.GenerateServerConfig(*serverConfig)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error", "data": gin.H{"error": err.Error()}})
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
 
 	configPath := "./wg.conf"
 	err = os.WriteFile(configPath, []byte(config), 0644)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error", "data": gin.H{"error": err.Error()}})
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "VPN server configuration setup successfully", "data": gin.H{"config": config}})
+	c.JSON(http.StatusOK, Response{Message: "VPN server configuration setup successfully", Data: gin.H{"config": config}})
 }
 
 func addUserHandler(c *gin.Context) {
 	var req AddUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Bad Request", "data": gin.H{"error": "Invalid request body"}})
+		c.JSON(http.StatusBadRequest, Response{Message: "Bad Request", Data: gin.H{"error": "Invalid request body"}})
 		return
 	}
 
 	if req.ID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Bad Request", "data": gin.H{"error": "User ID is required"}})
+		c.JSON(http.StatusBadRequest, Response{Message: "Bad Request", Data: gin.H{"error": "User ID is required"}})
 		return
 	}
 
 	userManager, err := NewUserManager("./users.db")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error", "data": gin.H{"error": err.Error()}})
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
 	defer userManager.db.Close()
 
 	serverConfig, err := LoadServerConfig("server.yaml")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error", "data": gin.H{"error": err.Error()}})
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
 
@@ -85,124 +92,114 @@ func addUserHandler(c *gin.Context) {
 		AllowedIPs:          req.AllowedIPs,
 		Endpoint:            endpoint,
 		PersistentKeepalive: persistentKeepalive,
+		PreUp:               req.PreUp,
+		PostUp:              req.PostUp,
+		PreDown:             req.PreDown,
+		PostDown:            req.PostDown,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error", "data": gin.H{"error": err.Error()}})
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
 
 	users, err := userManager.GetAllUsers()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error", "data": gin.H{"error": err.Error()}})
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
 
 	for _, user := range users {
 		if user.UserID == req.ID {
-			c.JSON(http.StatusOK, gin.H{"message": "User added successfully", "data": gin.H{"user_config": generateConfig(*serverConfig, user)}})
+			c.JSON(http.StatusOK, Response{Message: "User added successfully", Data: gin.H{"user_config": generateUserConfig(*serverConfig, user)}})
 			return
 		}
 	}
 
-	c.JSON(http.StatusNotFound, gin.H{"message": "User not found", "data": gin.H{"error": "User not found"}})
+	c.JSON(http.StatusNotFound, Response{Message: "User not found", Data: gin.H{"error": "User not found"}})
 }
 
 func deleteUserHandler(c *gin.Context) {
 	var req DeleteUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Bad Request", "data": gin.H{"error": "Invalid request body"}})
+		c.JSON(http.StatusBadRequest, Response{Message: "Bad Request", Data: gin.H{"error": "Invalid request body"}})
 		return
 	}
 
 	if req.ID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Bad Request", "data": gin.H{"error": "User ID is required"}})
+		c.JSON(http.StatusBadRequest, Response{Message: "Bad Request", Data: gin.H{"error": "User ID is required"}})
 		return
 	}
 
 	userManager, err := NewUserManager("./users.db")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error", "data": gin.H{"error": err.Error()}})
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
 	defer userManager.db.Close()
 
 	err = userManager.DeleteUser(req.ID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error", "data": gin.H{"error": err.Error()}})
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully", "data": gin.H{"user_id": req.ID}})
+	c.JSON(http.StatusOK, Response{Message: "User deleted successfully", Data: gin.H{"user_id": req.ID}})
 }
 
 func getUserHandler(c *gin.Context) {
 	var req GetUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Bad Request", "data": gin.H{"error": "Invalid request body"}})
+		c.JSON(http.StatusBadRequest, Response{Message: "Bad Request", Data: gin.H{"error": "Invalid request body"}})
 		return
 	}
 
 	if req.ID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Bad Request", "data": gin.H{"error": "User ID is required"}})
+		c.JSON(http.StatusBadRequest, Response{Message: "Bad Request", Data: gin.H{"error": "User ID is required"}})
 		return
 	}
 
 	userManager, err := NewUserManager("./users.db")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error", "data": gin.H{"error": err.Error()}})
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
 	defer userManager.db.Close()
 
 	users, err := userManager.GetAllUsers()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error", "data": gin.H{"error": err.Error()}})
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
 
 	serverConfig, err := LoadServerConfig("server.yaml")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error", "data": gin.H{"error": err.Error()}})
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
 
 	for _, user := range users {
 		if user.UserID == req.ID {
-			c.JSON(http.StatusOK, gin.H{"message": "User found", "data": gin.H{"user_config": generateConfig(*serverConfig, user)}})
+			c.JSON(http.StatusOK, Response{Message: "User found", Data: gin.H{"user_config": generateUserConfig(*serverConfig, user)}})
 			return
 		}
 	}
 
-	c.JSON(http.StatusNotFound, gin.H{"message": "User not found", "data": gin.H{"error": "User not found"}})
+	c.JSON(http.StatusNotFound, Response{Message: "User not found", Data: gin.H{"error": "User not found"}})
 }
 
 func getAllUsersHandler(c *gin.Context) {
 	userManager, err := NewUserManager("./users.db")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error", "data": gin.H{"error": err.Error()}})
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
 	defer userManager.db.Close()
 
 	users, err := userManager.GetAllUsers()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error", "data": gin.H{"error": err.Error()}})
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 15, 20, 0, ' ', tabwriter.TabIndent)
-	fmt.Fprintf(w, "ID\tIP\n")
-
-	var userList []map[string]string
-	for _, user := range users {
-		userList = append(userList, map[string]string{
-			"id": user.UserID,
-			"ip": user.IP,
-		})
-		fmt.Fprintf(w, "%s\t%s\t\n", user.UserID, user.IP)
-	}
-
-	w.Flush()
-
-	c.JSON(http.StatusOK, gin.H{"message": "Users retrieved successfully", "data": gin.H{"users": userList}})
+	c.JSON(http.StatusOK, Response{Message: "Users retrieved successfully", Data: users})
 }

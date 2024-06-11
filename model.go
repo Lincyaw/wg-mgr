@@ -17,11 +17,15 @@ type ServerConfig struct {
 }
 
 type UserConfig struct {
-	UserID              string
-	PublicKey           string
-	PrivateKey          string
-	IP                  string
-	AllowedIPs          string
-	Endpoint            string
-	PersistentKeepalive int
+	UserID              string `json:"user_id"`
+	PublicKey           string `json:"public_key"`
+	PrivateKey          string `json:"private_key"`
+	IP                  string `json:"ip"`
+	AllowedIPs          string `json:"allowed_ips"`
+	Endpoint            string `json:"endpoint"`
+	PersistentKeepalive int    `json:"persistent_keepalive"`
+	PreUp               string `json:"pre_up"`
+	PostUp              string `json:"post_up"`
+	PreDown             string `json:"pre_down"`
+	PostDown            string `json:"post_down"`
 }

@@ -39,7 +39,11 @@ func (um *UserManager) createTable() error {
         ip TEXT NOT NULL UNIQUE,
         allowed_ips TEXT NOT NULL,
         endpoint TEXT NOT NULL,
-        persistent_keepalive INTEGER
+        persistent_keepalive INTEGER,
+        pre_up TEXT,
+        post_up TEXT,
+        pre_down TEXT,
+        post_down TEXT
     );`
 	_, err := um.db.Exec(createTable)
 	return err
@@ -103,16 +107,16 @@ func (um *UserManager) AddUser(user *UserConfig) error {
 		user.AllowedIPs = newIP + "/24"
 	}
 
-	stmt, err := um.db.Prepare("INSERT INTO users(user_id, public_key, private_key, ip, allowed_ips, endpoint, persistent_keepalive) VALUES(?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := um.db.Prepare("INSERT INTO users(user_id, public_key, private_key, ip, allowed_ips, endpoint, persistent_keepalive, pre_up, post_up, pre_down, post_down) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		return err
 	}
-	_, err = stmt.Exec(user.UserID, user.PublicKey, user.PrivateKey, newIP, user.AllowedIPs, user.Endpoint, user.PersistentKeepalive)
+	_, err = stmt.Exec(user.UserID, user.PublicKey, user.PrivateKey, newIP, user.AllowedIPs, user.Endpoint, user.PersistentKeepalive, user.PreUp, user.PostUp, user.PreDown, user.PostDown)
 	return err
 }
 
 func (um *UserManager) GetAllUsers() ([]UserConfig, error) {
-	rows, err := um.db.Query("SELECT user_id, public_key, private_key, ip, allowed_ips, endpoint, persistent_keepalive FROM users")
+	rows, err := um.db.Query("SELECT user_id, public_key, private_key, ip, allowed_ips, endpoint, persistent_keepalive, pre_up, post_up, pre_down, post_down FROM users")
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +125,7 @@ func (um *UserManager) GetAllUsers() ([]UserConfig, error) {
 	var users []UserConfig
 	for rows.Next() {
 		var user UserConfig
-		err = rows.Scan(&user.UserID, &user.PublicKey, &user.PrivateKey, &user.IP, &user.AllowedIPs, &user.Endpoint, &user.PersistentKeepalive)
+		err = rows.Scan(&user.UserID, &user.PublicKey, &user.PrivateKey, &user.IP, &user.AllowedIPs, &user.Endpoint, &user.PersistentKeepalive, &user.PreUp, &user.PostUp, &user.PreDown, &user.PostDown)
 		if err != nil {
 			return nil, err
 		}
@@ -215,7 +219,7 @@ func generateKeys() (string, string, error) {
 }
 
 // generate user config
-func generateConfig(serverConfig ServerConfig, user UserConfig) string {
+func generateUserConfig(serverConfig ServerConfig, user UserConfig) string {
 	var configBuilder strings.Builder
 
 	configBuilder.WriteString(fmt.Sprintf(`[Interface]
@@ -234,6 +238,18 @@ AllowedIPs = %s
 	}
 	if user.PersistentKeepalive != 0 {
 		configBuilder.WriteString(fmt.Sprintf("PersistentKeepalive = %d\n", user.PersistentKeepalive))
+	}
+	if user.PreUp != "" {
+		configBuilder.WriteString(fmt.Sprintf("PreUp = %s\n", user.PreUp))
+	}
+	if user.PostUp != "" {
+		configBuilder.WriteString(fmt.Sprintf("PostUp = %s\n", user.PostUp))
+	}
+	if user.PreDown != "" {
+		configBuilder.WriteString(fmt.Sprintf("PreDown = %s\n", user.PreDown))
+	}
+	if user.PostDown != "" {
+		configBuilder.WriteString(fmt.Sprintf("PostDown = %s\n", user.PostDown))
 	}
 
 	return configBuilder.String()

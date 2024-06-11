@@ -63,6 +63,10 @@ func Add() *cobra.Command {
 				log.Fatal("You must provide a user ID")
 			}
 			allowedIPs, _ := cmd.Flags().GetString("allowedips")
+			preup, _ := cmd.Flags().GetString("preup")
+			postup, _ := cmd.Flags().GetString("postup")
+			predown, _ := cmd.Flags().GetString("predown")
+			postdown, _ := cmd.Flags().GetString("postdown")
 			endpoint := fmt.Sprintf("%s:%d", serverConfig.ServerIP, serverConfig.Port)
 			persistentKeepalive := 25
 
@@ -71,6 +75,10 @@ func Add() *cobra.Command {
 				AllowedIPs:          allowedIPs,
 				Endpoint:            endpoint,
 				PersistentKeepalive: persistentKeepalive,
+				PreUp:               preup,
+				PostUp:              postup,
+				PreDown:             predown,
+				PostDown:            postdown,
 			})
 			if err != nil {
 				log.Fatal(err)
@@ -82,7 +90,7 @@ func Add() *cobra.Command {
 			}
 			for _, user := range users {
 				if user.UserID == userID {
-					fmt.Printf("%s", generateConfig(*serverConfig, user))
+					fmt.Printf("%s", generateUserConfig(*serverConfig, user))
 				}
 			}
 		},
@@ -91,8 +99,10 @@ func Add() *cobra.Command {
 	addUserCmd.Flags().String("allowedips", "", "Allowed IPs")
 	// PostUp = sysctl -w net.ipv4.ip_forward=1; iptables -t nat -A POSTROUTING -o wg0 -j MASQUERADE
 	// PostDown = sysctl -w net.ipv4.ip_forward=0; iptables -t nat -D POSTROUTING -o wg0 -j MASQUERADE
-	addUserCmd.Flags().String("postup", "", "Allowed IPs")
-	addUserCmd.Flags().String("postdown", "", "Allowed IPs")
+	addUserCmd.Flags().String("preup", "", "Pre up")
+	addUserCmd.Flags().String("postup", "", "Post up")
+	addUserCmd.Flags().String("predown", "", "Pre down")
+	addUserCmd.Flags().String("postdown", "", "Post down")
 
 	return addUserCmd
 }
@@ -147,7 +157,7 @@ func Get() *cobra.Command {
 			}
 			for _, user := range users {
 				if user.UserID == userID {
-					fmt.Printf("%s", generateConfig(*serverConfig, user))
+					fmt.Printf("%s", generateUserConfig(*serverConfig, user))
 				}
 			}
 		},
