@@ -28,6 +28,21 @@ wg-quick up wg0
 ./vpn-tool adduser --id yourname
 ```
 
+2.1 If want to advertise a subnet router, 
+
+```bash
+./vpn-tool adduser --id router \
+    --postup "iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -s 100.10.10.0/24 -o eth0 -j MASQUERADE" \
+    --postdown "iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -s 100.10.10.0/24 -o eth0 -j MASQUERADE" \
+    --advertise-routes "10.10.10.0/24"
+```
+
+2.2 To add a user that accepts the routes,
+
+```bash
+./vpn-tool adduser --id client --accept-routes
+```
+
 3. Delete user
 
 ```bash

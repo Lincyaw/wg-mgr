@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"log"
 	"os"
+	"strings"
 	"text/tabwriter"
 )
 
@@ -63,6 +65,8 @@ func Add() *cobra.Command {
 				log.Fatal("You must provide a user ID")
 			}
 			allowedIPs, _ := cmd.Flags().GetString("allowedips")
+			advertiseRoutes, _ := cmd.Flags().GetString("advertise-routes")
+			acceptRoutes, _ := cmd.Flags().GetBool("accept-routes")
 			preup, _ := cmd.Flags().GetString("preup")
 			postup, _ := cmd.Flags().GetString("postup")
 			predown, _ := cmd.Flags().GetString("predown")
@@ -70,10 +74,34 @@ func Add() *cobra.Command {
 			endpoint := fmt.Sprintf("%s:%d", serverConfig.ServerIP, serverConfig.Port)
 			persistentKeepalive := 25
 
+			var acceptedRoutes string
+			if acceptRoutes {
+				var routes []string
+
+				availableRoutes, err := userManager.GetAllRoutes()
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				// 使用 survey 进行交互式选择
+				prompt := &survey.MultiSelect{
+					Message: "Select routes to accept:",
+					Options: availableRoutes,
+				}
+				err = survey.AskOne(prompt, &routes)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				acceptedRoutes = fmt.Sprintf("%s", strings.Join(routes, ","))
+			}
+
 			err = userManager.AddUser(&UserConfig{
 				UserID:              userID,
 				AllowedIPs:          allowedIPs,
+				AdvertiseRoutes:     advertiseRoutes,
 				Endpoint:            endpoint,
+				AcceptRoutes:        acceptedRoutes,
 				PersistentKeepalive: persistentKeepalive,
 				PreUp:               preup,
 				PostUp:              postup,
@@ -96,7 +124,9 @@ func Add() *cobra.Command {
 		},
 	}
 	addUserCmd.Flags().String("id", "", "User ID")
-	addUserCmd.Flags().String("allowedips", "", "Allowed IPs")
+	addUserCmd.Flags().String("allowedips", "", "For client side, which traffic can be passed to the server")
+	addUserCmd.Flags().String("advertise-routes", "", "Advertise a route to the server, so that other client can connect to it")
+	addUserCmd.Flags().Bool("accept-routes", false, "Accept a route to the server, so that other client can connect to it")
 	// PostUp = sysctl -w net.ipv4.ip_forward=1; iptables -t nat -A POSTROUTING -o wg0 -j MASQUERADE
 	// PostDown = sysctl -w net.ipv4.ip_forward=0; iptables -t nat -D POSTROUTING -o wg0 -j MASQUERADE
 	addUserCmd.Flags().String("preup", "", "Pre up")

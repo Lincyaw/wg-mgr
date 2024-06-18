@@ -43,7 +43,9 @@ func (um *UserManager) createTable() error {
         pre_up TEXT,
         post_up TEXT,
         pre_down TEXT,
-        post_down TEXT
+        post_down TEXT,
+        advertise_routes TEXT UNIQUE,
+        accept_routes TEXT
     );`
 	_, err := um.db.Exec(createTable)
 	return err
@@ -107,16 +109,16 @@ func (um *UserManager) AddUser(user *UserConfig) error {
 		user.AllowedIPs = newIP + "/24"
 	}
 
-	stmt, err := um.db.Prepare("INSERT INTO users(user_id, public_key, private_key, ip, allowed_ips, endpoint, persistent_keepalive, pre_up, post_up, pre_down, post_down) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := um.db.Prepare("INSERT INTO users(user_id, public_key, private_key, ip, allowed_ips, endpoint, persistent_keepalive, pre_up, post_up, pre_down, post_down, advertise_routes, accept_routes) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		return err
 	}
-	_, err = stmt.Exec(user.UserID, user.PublicKey, user.PrivateKey, newIP, user.AllowedIPs, user.Endpoint, user.PersistentKeepalive, user.PreUp, user.PostUp, user.PreDown, user.PostDown)
+	_, err = stmt.Exec(user.UserID, user.PublicKey, user.PrivateKey, newIP, user.AllowedIPs, user.Endpoint, user.PersistentKeepalive, user.PreUp, user.PostUp, user.PreDown, user.PostDown, user.AdvertiseRoutes, user.AcceptRoutes)
 	return err
 }
 
 func (um *UserManager) GetAllUsers() ([]UserConfig, error) {
-	rows, err := um.db.Query("SELECT user_id, public_key, private_key, ip, allowed_ips, endpoint, persistent_keepalive, pre_up, post_up, pre_down, post_down FROM users")
+	rows, err := um.db.Query("SELECT user_id, public_key, private_key, ip, allowed_ips, endpoint, persistent_keepalive, pre_up, post_up, pre_down, post_down, advertise_routes, accept_routes FROM users")
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +127,7 @@ func (um *UserManager) GetAllUsers() ([]UserConfig, error) {
 	var users []UserConfig
 	for rows.Next() {
 		var user UserConfig
-		err = rows.Scan(&user.UserID, &user.PublicKey, &user.PrivateKey, &user.IP, &user.AllowedIPs, &user.Endpoint, &user.PersistentKeepalive, &user.PreUp, &user.PostUp, &user.PreDown, &user.PostDown)
+		err = rows.Scan(&user.UserID, &user.PublicKey, &user.PrivateKey, &user.IP, &user.AllowedIPs, &user.Endpoint, &user.PersistentKeepalive, &user.PreUp, &user.PostUp, &user.PreDown, &user.PostDown, &user.AdvertiseRoutes, &user.AcceptRoutes)
 		if err != nil {
 			return nil, err
 		}
@@ -134,12 +136,32 @@ func (um *UserManager) GetAllUsers() ([]UserConfig, error) {
 	return users, nil
 }
 
+func (um *UserManager) GetAllRoutes() ([]string, error) {
+	rows, err := um.db.Query("SELECT advertise_routes FROM users")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	results := make([]string, 0)
+	for rows.Next() {
+		var route string
+		err = rows.Scan(&route)
+		if err != nil {
+			return nil, err
+		}
+		if route != "" {
+			results = append(results, route)
+		}
+	}
+	return results, nil
+}
+
 func (um *UserManager) UpdateUser(user UserConfig) error {
-	stmt, err := um.db.Prepare("UPDATE users SET public_key = ?, private_key = ?, ip = ?, allowed_ips = ?, endpoint = ?, persistent_keepalive = ? WHERE user_id = ?")
+	stmt, err := um.db.Prepare("UPDATE users SET public_key = ?, private_key = ?, ip = ?, allowed_ips = ?, endpoint = ?, persistent_keepalive = ?, advertise_routes = ?, accept_routes = ? WHERE user_id = ?")
 	if err != nil {
 		return err
 	}
-	_, err = stmt.Exec(user.PublicKey, user.PrivateKey, user.IP, user.AllowedIPs, user.Endpoint, user.PersistentKeepalive, user.UserID)
+	_, err = stmt.Exec(user.PublicKey, user.PrivateKey, user.IP, user.AllowedIPs, user.Endpoint, user.PersistentKeepalive, user.UserID, user.AdvertiseRoutes, user.AcceptRoutes)
 	return err
 }
 
@@ -189,10 +211,17 @@ ListenPort = %d
 	}
 
 	for _, user := range users {
-		configBuilder.WriteString(fmt.Sprintf(`[Peer]
+		base := fmt.Sprintf(`[Peer]
 PublicKey = %s
-AllowedIPs = %s
-`, user.PublicKey, user.IP+"/32"))
+`, user.PublicKey)
+		if user.AdvertiseRoutes != "" {
+			base += fmt.Sprintf(`AllowedIPs = %s, %s 
+`, user.IP+"/32", user.AdvertiseRoutes)
+		} else {
+			base += fmt.Sprintf(`AllowedIPs = %s 
+`, user.IP+"/32")
+		}
+		configBuilder.WriteString(base)
 	}
 
 	return configBuilder.String(), nil
@@ -227,29 +256,39 @@ PrivateKey = %s
 Address = %s/32
 `, user.PrivateKey, user.IP))
 
+	if user.PreUp != "" {
+		configBuilder.WriteString(fmt.Sprintf(`PreUp = %s
+`, user.PreUp))
+	}
+	if user.PostUp != "" {
+		configBuilder.WriteString(fmt.Sprintf(`PostUp = %s
+`, user.PostUp))
+	}
+	if user.PreDown != "" {
+		configBuilder.WriteString(fmt.Sprintf(`PreDown = %s
+`, user.PreDown))
+	}
+	if user.PostDown != "" {
+		configBuilder.WriteString(fmt.Sprintf(`PostDown = %s
+`, user.PostDown))
+	}
 	configBuilder.WriteString(fmt.Sprintf(`
 [Peer]
 PublicKey = %s
-AllowedIPs = %s
-`, serverConfig.PublicKey, user.AllowedIPs))
+`, serverConfig.PublicKey))
+	if user.AcceptRoutes != "" {
+		configBuilder.WriteString(fmt.Sprintf(`AllowedIPs = %s, %s
+`, user.AllowedIPs, user.AcceptRoutes))
+	} else {
+		configBuilder.WriteString(fmt.Sprintf(`AllowedIPs = %s
+`, user.AllowedIPs))
+	}
 
 	if user.Endpoint != "" {
 		configBuilder.WriteString(fmt.Sprintf("Endpoint = %s\n", user.Endpoint))
 	}
 	if user.PersistentKeepalive != 0 {
 		configBuilder.WriteString(fmt.Sprintf("PersistentKeepalive = %d\n", user.PersistentKeepalive))
-	}
-	if user.PreUp != "" {
-		configBuilder.WriteString(fmt.Sprintf("PreUp = %s\n", user.PreUp))
-	}
-	if user.PostUp != "" {
-		configBuilder.WriteString(fmt.Sprintf("PostUp = %s\n", user.PostUp))
-	}
-	if user.PreDown != "" {
-		configBuilder.WriteString(fmt.Sprintf("PreDown = %s\n", user.PreDown))
-	}
-	if user.PostDown != "" {
-		configBuilder.WriteString(fmt.Sprintf("PostDown = %s\n", user.PostDown))
 	}
 
 	return configBuilder.String()
@@ -268,7 +307,7 @@ func generateIPPool(cidr string) ([]string, error) {
 	}
 
 	// 去掉网络地址和广播地址
-	return ips[1 : len(ips)-1], nil
+	return ips[3 : len(ips)-1], nil
 }
 
 // inc 递增 IP 地址

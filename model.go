@@ -22,6 +22,8 @@ type UserConfig struct {
 	PrivateKey          string `json:"private_key"`
 	IP                  string `json:"ip"`
 	AllowedIPs          string `json:"allowed_ips"`
+	AdvertiseRoutes     string `json:"advertise_routes"`
+	AcceptRoutes        string `json:"accept_routes"`
 	Endpoint            string `json:"endpoint"`
 	PersistentKeepalive int    `json:"persistent_keepalive"`
 	PreUp               string `json:"pre_up"`
