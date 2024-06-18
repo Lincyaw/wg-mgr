@@ -44,7 +44,7 @@ func (um *UserManager) createTable() error {
         post_up TEXT,
         pre_down TEXT,
         post_down TEXT,
-        advertise_routes TEXT UNIQUE,
+        advertise_routes TEXT,
         accept_routes TEXT
     );`
 	_, err := um.db.Exec(createTable)
@@ -108,7 +108,14 @@ func (um *UserManager) AddUser(user *UserConfig) error {
 	if user.AllowedIPs == "" {
 		user.AllowedIPs = newIP + "/24"
 	}
-
+	if user.AdvertiseRoutes != "" {
+		routes, _ := um.GetAllRoutes()
+		for _, v := range routes {
+			if v == user.AdvertiseRoutes {
+				return errors.New("advertise route already exists")
+			}
+		}
+	}
 	stmt, err := um.db.Prepare("INSERT INTO users(user_id, public_key, private_key, ip, allowed_ips, endpoint, persistent_keepalive, pre_up, post_up, pre_down, post_down, advertise_routes, accept_routes) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		return err

@@ -1,0 +1,73 @@
+name: Build VPN Tool
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        platform: [windows/amd64, windows/arm64, linux/amd64, linux/arm64, darwin/amd64, darwin/arm64]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Set up platform variables
+        id: platform
+        run: |
+          PLATFORM=${{ matrix.platform }}
+          OS=$(echo $PLATFORM | cut -d'/' -f1)
+          ARCH=$(echo $PLATFORM | cut -d'/' -f2)
+          echo "OS=$OS" >> $GITHUB_ENV
+          echo "ARCH=$ARCH" >> $GITHUB_ENV
+
+      - name: Build for ${{ matrix.platform }}
+        run: |
+          make ${{ matrix.platform }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-build
+          path: build/
+
+      - name: Clean build directory
+        run: make clean
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: build/
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/vpn-tool_windows_amd64.exe
+            build/vpn-tool_windows_arm64.exe
+            build/vpn-tool_linux_amd64
+            build/vpn-tool_linux_arm64
+            build/vpn-tool_darwin_amd64
+            build/vpn-tool_darwin_arm64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
