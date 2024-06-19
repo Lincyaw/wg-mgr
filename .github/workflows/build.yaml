@@ -38,13 +38,13 @@ jobs:
 
       - name: Build for ${{ matrix.platform }}
         run: |
-          make ${{ matrix.platform }}
+          make -C server ${{ matrix.platform }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}-build
-          path: build/
+          path: server/build/
 
   release:
     needs: build
@@ -56,7 +56,7 @@ jobs:
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          path: build/
+          path: server/build/
 
       - name: Create new tag
         id: create_tag
@@ -77,6 +77,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.NEW_TAG }}
-          files: build/*/*
+          files: server/build/*/*
         env:
           GITHUB_TOKEN: ${{ secrets.MYGITHUB_TOKEN }}
