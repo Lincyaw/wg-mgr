@@ -4,6 +4,7 @@ go 1.21.6
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
+	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-gonic/gin v1.10.0
 	github.com/spf13/cobra v1.8.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -28,6 +29,7 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.2 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

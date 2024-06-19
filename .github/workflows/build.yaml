@@ -38,7 +38,7 @@ jobs:
 
       - name: Build for ${{ matrix.platform }}
         run: |
-          make ${{ matrix.platform }}
+          make -C server ${{ matrix.platform }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
