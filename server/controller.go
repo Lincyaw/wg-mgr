@@ -8,12 +8,14 @@ import (
 )
 
 type AddUserRequest struct {
-	ID         string `json:"id"`
-	AllowedIPs string `json:"allowedips"`
-	PreUp      string `json:"pre_up"`
-	PostUp     string `json:"post_up"`
-	PreDown    string `json:"pre_down"`
-	PostDown   string `json:"post_down"`
+	ID              string `json:"id"`
+	AllowedIPs      string `json:"allowedips"`
+	PreUp           string `json:"pre_up"`
+	PostUp          string `json:"post_up"`
+	PreDown         string `json:"pre_down"`
+	PostDown        string `json:"post_down"`
+	AdvertiseRoutes string `json:"advertise_routes"`
+	AcceptRoutes    string `json:"accept_routes"`
 }
 
 type DeleteUserRequest struct {
@@ -91,6 +93,8 @@ func addUserHandler(c *gin.Context) {
 		UserID:              req.ID,
 		AllowedIPs:          req.AllowedIPs,
 		Endpoint:            endpoint,
+		AdvertiseRoutes:     req.AdvertiseRoutes,
+		AcceptRoutes:        req.AcceptRoutes,
 		PersistentKeepalive: persistentKeepalive,
 		PreUp:               req.PreUp,
 		PostUp:              req.PostUp,
@@ -202,4 +206,17 @@ func getAllUsersHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, Response{Message: "Users retrieved successfully", Data: users})
+}
+
+func getAllRoutesHandler(c *gin.Context) {
+	userManager, err := NewUserManager("./users.db")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
+	}
+	defer userManager.db.Close()
+	routes, err := userManager.GetAllRoutes()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
+	}
+	c.JSON(http.StatusOK, Response{Message: "Routes retrieved successfully", Data: routes})
 }

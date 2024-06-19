@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"log"
@@ -228,13 +229,17 @@ func Server() *cobra.Command {
 		Use:   "server",
 		Short: "Run server",
 		Run: func(cmd *cobra.Command, args []string) {
+
 			r := gin.Default()
 
-			r.POST("/setup", setupHandler)
-			r.POST("/adduser", addUserHandler)
-			r.POST("/deluser", deleteUserHandler)
-			r.POST("/getuser", getUserHandler)
-			r.POST("/getall", getAllUsersHandler)
+			r.Use(cors.Default())
+			api := r.Group("/api")
+			api.POST("/setup", setupHandler)
+			api.POST("/adduser", addUserHandler)
+			api.POST("/deluser", deleteUserHandler)
+			api.POST("/getuser", getUserHandler)
+			api.POST("/getall", getAllUsersHandler)
+			api.POST("/getroutes", getAllRoutesHandler)
 
 			addr, _ := cmd.Flags().GetString("addr")
 			if addr == "" {
