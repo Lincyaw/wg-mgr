@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"os"
+
+	"github.com/gin-gonic/gin"
 )
 
 type AddUserRequest struct {
@@ -219,4 +220,24 @@ func getAllRoutesHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 	}
 	c.JSON(http.StatusOK, Response{Message: "Routes retrieved successfully", Data: routes})
+}
+
+func updateUserEndpointsHandler(c *gin.Context) {
+	userManager, err := NewUserManager("./users.db")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
+		return
+	}
+	defer userManager.db.Close()
+	serverConfig, err := LoadServerConfig("./server.yaml")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
+		return
+	}
+	err = userManager.UpdateUserEndpoints(*serverConfig)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
+		return
+	}
+	c.JSON(http.StatusOK, Response{Message: "User endpoints updated successfully"})
 }

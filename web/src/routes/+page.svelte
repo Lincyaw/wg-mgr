@@ -80,6 +80,19 @@
         const config = data.data.user_config;
         await navigator.clipboard.writeText(config);
     }
+
+    async function updateUserEndpoints() {
+        const response = await fetch('http://localhost:8080/api/updateendpoints', {
+            method: 'POST',
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            alert(data.message);
+        } else {
+            alert("User endpoints updated successfully");
+        }
+        await fetchUsers();
+    }
 </script>
 
 <main class="max-w-2xl mx-auto p-4 bg-gray-900 text-white rounded-lg shadow-lg">
