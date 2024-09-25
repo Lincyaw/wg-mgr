@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/AlecAivazis/survey/v2"
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	"github.com/spf13/cobra"
 	"log"
 	"os"
 	"strings"
 	"text/tabwriter"
+
+	"github.com/AlecAivazis/survey/v2"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/spf13/cobra"
 )
 
 func Setup() *cobra.Command {
@@ -222,6 +223,31 @@ func GetAllUsers() *cobra.Command {
 		},
 	}
 	return getAllUsersCmd
+}
+
+func UpdateEndpoints() *cobra.Command {
+	var updateEndpointsCmd = &cobra.Command{
+		Use:   "updateendpoints",
+		Short: "Update user endpoints",
+		Run: func(cmd *cobra.Command, args []string) {
+			userManager, err := NewUserManager("./users.db")
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer userManager.db.Close()
+			serverConfig, err := LoadServerConfig("server.yaml")
+			if err != nil {
+				log.Fatal(err)
+			}
+			err = userManager.UpdateUserEndpoints(*serverConfig)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Println("User endpoints updated successfully")
+		},
+	}
+	return updateEndpointsCmd
 }
 
 func Server() *cobra.Command {

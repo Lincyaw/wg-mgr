@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	_ "modernc.org/sqlite"
 	"os"
+
+	_ "modernc.org/sqlite"
 
 	"github.com/spf13/cobra"
 )
@@ -11,7 +12,7 @@ import (
 func main() {
 	var rootCmd = &cobra.Command{Use: "vpn-tool"}
 
-	rootCmd.AddCommand(Setup(), Add(), Delete(), Get(), GetAllUsers(), Server())
+	rootCmd.AddCommand(Setup(), Add(), Delete(), Get(), GetAllUsers(), Server(), UpdateEndpoints())
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

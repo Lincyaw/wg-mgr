@@ -172,6 +172,29 @@ func (um *UserManager) UpdateUser(user UserConfig) error {
 	return err
 }
 
+func (um *UserManager) UpdateUserEndpoints(serverConfig ServerConfig) error {
+	serverIP := serverConfig.ServerIP
+	stmt, err := um.db.Prepare("UPDATE users SET endpoint = ? WHERE user_id = ?")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	users, err := um.GetAllUsers()
+	if err != nil {
+		return err
+	}
+
+	for _, user := range users {
+		_, err := stmt.Exec(serverIP, user.UserID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (um *UserManager) DeleteUser(id string) error {
 	stmt, err := um.db.Prepare("DELETE FROM users WHERE user_id = ?")
 	if err != nil {
