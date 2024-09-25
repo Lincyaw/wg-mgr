@@ -173,7 +173,7 @@ func (um *UserManager) UpdateUser(user UserConfig) error {
 }
 
 func (um *UserManager) UpdateUserEndpoints(serverConfig ServerConfig) error {
-	serverIP := serverConfig.ServerIP
+	endpoint := fmt.Sprintf("%s:%d", serverConfig.ServerIP, serverConfig.Port)
 	stmt, err := um.db.Prepare("UPDATE users SET endpoint = ? WHERE user_id = ?")
 	if err != nil {
 		return err
@@ -184,9 +184,8 @@ func (um *UserManager) UpdateUserEndpoints(serverConfig ServerConfig) error {
 	if err != nil {
 		return err
 	}
-
 	for _, user := range users {
-		_, err := stmt.Exec(serverIP, user.UserID)
+		_, err := stmt.Exec(endpoint, user.UserID)
 		if err != nil {
 			return err
 		}
