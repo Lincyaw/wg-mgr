@@ -10,6 +10,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/k0kubun/pp"
 	"github.com/spf13/cobra"
 )
 
@@ -245,6 +246,25 @@ func UpdateEndpoints() *cobra.Command {
 			}
 
 			fmt.Println("User endpoints updated successfully")
+		},
+	}
+	return updateEndpointsCmd
+}
+
+func Info() *cobra.Command {
+	var updateEndpointsCmd = &cobra.Command{
+		Use:   "info",
+		Short: "Get information about the endpoints",
+		Run: func(cmd *cobra.Command, args []string) {
+			userManager, err := NewUserManager("./users.db")
+			if err != nil {
+				log.Fatal(err)
+			}
+			info, err := userManager.GetAllUserTraffic()
+			if err != nil {
+				log.Fatal(err)
+			}
+			pp.Println(info)
 		},
 	}
 	return updateEndpointsCmd

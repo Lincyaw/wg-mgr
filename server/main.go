@@ -12,7 +12,7 @@ import (
 func main() {
 	var rootCmd = &cobra.Command{Use: "vpn-tool"}
 
-	rootCmd.AddCommand(Setup(), Add(), Delete(), Get(), GetAllUsers(), Server(), UpdateEndpoints())
+	rootCmd.AddCommand(Setup(), Add(), Delete(), Get(), GetAllUsers(), Server(), UpdateEndpoints(), Info())
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
