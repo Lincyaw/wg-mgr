@@ -283,6 +283,7 @@ func (um *UserManager) GetAllUserTraffic() (UserTrafficList, error) {
 	for _, user := range users {
 		for _, device := range devices {
 			for _, peer := range device.Peers {
+
 				// 检查用户 IP 是否匹配 Peer 的 AllowedIPs
 				for _, allowedIP := range peer.AllowedIPs {
 					if allowedIP.String() == user.IP+"/32" {
@@ -291,6 +292,7 @@ func (um *UserManager) GetAllUserTraffic() (UserTrafficList, error) {
 							IP:            user.IP,
 							ReceiveBytes:  uint64(peer.ReceiveBytes),
 							TransmitBytes: uint64(peer.TransmitBytes),
+							LastHandShake: peer.LastHandshakeTime,
 						})
 					}
 				}
