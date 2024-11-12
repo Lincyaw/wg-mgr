@@ -23,20 +23,21 @@ type ServerConfig struct {
 	IPPool     string `yaml:"ip_pool"`
 }
 
-type UserConfig struct {
-	UserID              string `json:"user_id"`
-	PublicKey           string `json:"public_key"`
-	PrivateKey          string `json:"private_key"`
-	IP                  string `json:"ip"`
-	AllowedIPs          string `json:"allowed_ips"`
-	AdvertiseRoutes     string `json:"advertise_routes"`
-	AcceptRoutes        string `json:"accept_routes"`
-	Endpoint            string `json:"endpoint"`
+type User struct {
+	ID                  uint   `gorm:"primaryKey"`
+	UserID              string `gorm:"uniqueIndex;not null" json:"user_id"`
+	PublicKey           string `gorm:"not null" json:"public_key"`
+	PrivateKey          string `gorm:"not null" json:"private_key"`
+	IP                  string `gorm:"uniqueIndex;not null" json:"ip"`
+	AllowedIPs          string `gorm:"not null" json:"allowed_ips"`
+	Endpoint            string `gorm:"not null" json:"endpoint"`
 	PersistentKeepalive int    `json:"persistent_keepalive"`
 	PreUp               string `json:"pre_up"`
 	PostUp              string `json:"post_up"`
 	PreDown             string `json:"pre_down"`
 	PostDown            string `json:"post_down"`
+	AdvertiseRoutes     string `json:"advertise_routes"`
+	AcceptRoutes        string `json:"accept_routes"`
 }
 
 type UserTrafficData struct {

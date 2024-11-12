@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"golang.zx2c4.com/wireguard/wgctrl"
@@ -9,14 +8,17 @@ import (
 	"net"
 	"os/exec"
 	"strings"
+
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 type UserManager struct {
-	db *sql.DB
+	db *gorm.DB
 }
 
 func NewUserManager(dbPath string) (*UserManager, error) {
-	db, err := sql.Open("sqlite", dbPath)
+	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -31,56 +33,27 @@ func NewUserManager(dbPath string) (*UserManager, error) {
 }
 
 func (um *UserManager) createTable() error {
-	createTable := `
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id TEXT NOT NULL UNIQUE,
-        public_key TEXT NOT NULL,
-        private_key TEXT NOT NULL,
-        ip TEXT NOT NULL UNIQUE,
-        allowed_ips TEXT NOT NULL,
-        endpoint TEXT NOT NULL,
-        persistent_keepalive INTEGER,
-        pre_up TEXT,
-        post_up TEXT,
-        pre_down TEXT,
-        post_down TEXT,
-        advertise_routes TEXT,
-        accept_routes TEXT
-    );`
-	_, err := um.db.Exec(createTable)
-	return err
+	return um.db.AutoMigrate(&User{})
 }
 
-func (um *UserManager) AddUser(user *UserConfig) error {
-	// 从 YAML 文件加载服务器配置
+func (um *UserManager) AddUser(user *User) error {
 	serverConfig, err := LoadServerConfig("server.yaml")
 	if err != nil {
 		log.Fatal(err)
 	}
 	ipPoolCIDR := serverConfig.IPPool
-	// 生成 IP 池
+
 	ipPool, err := generateIPPool(ipPoolCIDR)
 	if err != nil {
 		return err
 	}
-	// 查询表中已存在的 IP 地址
-	rows, err := um.db.Query("SELECT ip FROM users")
+
+	var usedIPs []string
+	err = um.db.Model(&User{}).Pluck("ip", &usedIPs).Error
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
 
-	var usedIPs []string
-	for rows.Next() {
-		var ip string
-		if err := rows.Scan(&ip); err != nil {
-			return err
-		}
-		usedIPs = append(usedIPs, ip)
-	}
-
-	// 查找未使用的 IP
 	var newIP string
 	for _, ip := range ipPool {
 		used := false
@@ -99,7 +72,6 @@ func (um *UserManager) AddUser(user *UserConfig) error {
 		return errors.New("no available IP addresses")
 	}
 
-	// 生成密钥对
 	privateKey, publicKey, err := generateKeys()
 	if err != nil {
 		return err
@@ -109,6 +81,7 @@ func (um *UserManager) AddUser(user *UserConfig) error {
 	if user.AllowedIPs == "" {
 		user.AllowedIPs = newIP + "/24"
 	}
+
 	if user.AdvertiseRoutes != "" {
 		routes, _ := um.GetAllRoutes()
 		for _, v := range routes {
@@ -117,90 +90,49 @@ func (um *UserManager) AddUser(user *UserConfig) error {
 			}
 		}
 	}
-	stmt, err := um.db.Prepare("INSERT INTO users(user_id, public_key, private_key, ip, allowed_ips, endpoint, persistent_keepalive, pre_up, post_up, pre_down, post_down, advertise_routes, accept_routes) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-	if err != nil {
-		return err
-	}
-	_, err = stmt.Exec(user.UserID, user.PublicKey, user.PrivateKey, newIP, user.AllowedIPs, user.Endpoint, user.PersistentKeepalive, user.PreUp, user.PostUp, user.PreDown, user.PostDown, user.AdvertiseRoutes, user.AcceptRoutes)
+
+	user.IP = newIP
+	err = um.db.Create(user).Error
 	return err
 }
 
-func (um *UserManager) GetAllUsers() ([]UserConfig, error) {
-	rows, err := um.db.Query("SELECT user_id, public_key, private_key, ip, allowed_ips, endpoint, persistent_keepalive, pre_up, post_up, pre_down, post_down, advertise_routes, accept_routes FROM users")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var users []UserConfig
-	for rows.Next() {
-		var user UserConfig
-		err = rows.Scan(&user.UserID, &user.PublicKey, &user.PrivateKey, &user.IP, &user.AllowedIPs, &user.Endpoint, &user.PersistentKeepalive, &user.PreUp, &user.PostUp, &user.PreDown, &user.PostDown, &user.AdvertiseRoutes, &user.AcceptRoutes)
-		if err != nil {
-			return nil, err
-		}
-		users = append(users, user)
-	}
-	return users, nil
+func (um *UserManager) GetAllUsers() ([]User, error) {
+	var users []User
+	err := um.db.Find(&users).Error
+	return users, err
 }
 
 func (um *UserManager) GetAllRoutes() ([]string, error) {
-	rows, err := um.db.Query("SELECT advertise_routes FROM users")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	results := make([]string, 0)
-	for rows.Next() {
-		var route string
-		err = rows.Scan(&route)
-		if err != nil {
-			return nil, err
-		}
-		if route != "" {
-			results = append(results, route)
-		}
-	}
-	return results, nil
+	var routes []string
+	err := um.db.Model(&User{}).Where("advertise_routes != ''").Pluck("advertise_routes", &routes).Error
+	return routes, err
 }
 
-func (um *UserManager) UpdateUser(user UserConfig) error {
-	stmt, err := um.db.Prepare("UPDATE users SET public_key = ?, private_key = ?, ip = ?, allowed_ips = ?, endpoint = ?, persistent_keepalive = ?, advertise_routes = ?, accept_routes = ? WHERE user_id = ?")
-	if err != nil {
-		return err
-	}
-	_, err = stmt.Exec(user.PublicKey, user.PrivateKey, user.IP, user.AllowedIPs, user.Endpoint, user.PersistentKeepalive, user.UserID, user.AdvertiseRoutes, user.AcceptRoutes)
+func (um *UserManager) UpdateUser(user User) error {
+	err := um.db.Model(&User{}).Where("user_id = ?", user.UserID).Updates(user).Error
 	return err
 }
 
 func (um *UserManager) UpdateUserEndpoints(serverConfig ServerConfig) error {
 	endpoint := fmt.Sprintf("%s:%d", serverConfig.ServerIP, serverConfig.Port)
-	stmt, err := um.db.Prepare("UPDATE users SET endpoint = ? WHERE user_id = ?")
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
 
-	users, err := um.GetAllUsers()
+	var users []User
+	err := um.db.Find(&users).Error
 	if err != nil {
 		return err
 	}
+
 	for _, user := range users {
-		_, err := stmt.Exec(endpoint, user.UserID)
+		err := um.db.Model(&User{}).Where("user_id = ?", user.UserID).Update("endpoint", endpoint).Error
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
-func (um *UserManager) DeleteUser(id string) error {
-	stmt, err := um.db.Prepare("DELETE FROM users WHERE user_id = ?")
-	if err != nil {
-		return err
-	}
-	_, err = stmt.Exec(id)
+func (um *UserManager) DeleteUser(userID string) error {
+	err := um.db.Where("user_id = ?", userID).Delete(&User{}).Error
 	return err
 }
 
@@ -324,7 +256,7 @@ func generateKeys() (string, string, error) {
 }
 
 // generate user config
-func generateUserConfig(serverConfig ServerConfig, user UserConfig) string {
+func generateUserConfig(serverConfig ServerConfig, user User) string {
 	var configBuilder strings.Builder
 
 	configBuilder.WriteString(fmt.Sprintf(`[Interface]

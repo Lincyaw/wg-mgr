@@ -22,7 +22,6 @@ func Setup() *cobra.Command {
 			if err != nil {
 				log.Fatal(err)
 			}
-			defer userManager.db.Close()
 
 			// 从 YAML 文件加载服务器配置
 			serverConfig, err := LoadServerConfig("server.yaml")
@@ -55,7 +54,6 @@ func Add() *cobra.Command {
 			if err != nil {
 				log.Fatal(err)
 			}
-			defer userManager.db.Close()
 
 			serverConfig, err := LoadServerConfig("server.yaml")
 			if err != nil {
@@ -98,7 +96,7 @@ func Add() *cobra.Command {
 				acceptedRoutes = fmt.Sprintf("%s", strings.Join(routes, ","))
 			}
 
-			err = userManager.AddUser(&UserConfig{
+			err = userManager.AddUser(&User{
 				UserID:              userID,
 				AllowedIPs:          allowedIPs,
 				AdvertiseRoutes:     advertiseRoutes,
@@ -147,7 +145,6 @@ func Delete() *cobra.Command {
 			if err != nil {
 				log.Fatal(err)
 			}
-			defer userManager.db.Close()
 
 			userID, _ := cmd.Flags().GetString("id")
 			if userID == "" {
@@ -174,7 +171,6 @@ func Get() *cobra.Command {
 			if err != nil {
 				log.Fatal(err)
 			}
-			defer userManager.db.Close()
 			userID, _ := cmd.Flags().GetString("id")
 			if userID == "" {
 				log.Fatal("User ID is required")
@@ -206,7 +202,6 @@ func GetAllUsers() *cobra.Command {
 			if err != nil {
 				log.Fatal(err)
 			}
-			defer userManager.db.Close()
 			users, err := userManager.GetAllUsers()
 			if err != nil {
 				log.Fatal(err)
@@ -234,7 +229,6 @@ func UpdateEndpoints() *cobra.Command {
 			if err != nil {
 				log.Fatal(err)
 			}
-			defer userManager.db.Close()
 			serverConfig, err := LoadServerConfig("server.yaml")
 			if err != nil {
 				log.Fatal(err)

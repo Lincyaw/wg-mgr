@@ -38,7 +38,6 @@ func setupHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
-	defer userManager.db.Close()
 
 	serverConfig, err := LoadServerConfig("server.yaml")
 	if err != nil {
@@ -79,7 +78,6 @@ func addUserHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
-	defer userManager.db.Close()
 
 	serverConfig, err := LoadServerConfig("server.yaml")
 	if err != nil {
@@ -90,7 +88,7 @@ func addUserHandler(c *gin.Context) {
 	endpoint := fmt.Sprintf("%s:%d", serverConfig.ServerIP, serverConfig.Port)
 	persistentKeepalive := 25
 
-	err = userManager.AddUser(&UserConfig{
+	err = userManager.AddUser(&User{
 		UserID:              req.ID,
 		AllowedIPs:          req.AllowedIPs,
 		Endpoint:            endpoint,
@@ -140,7 +138,6 @@ func deleteUserHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
-	defer userManager.db.Close()
 
 	err = userManager.DeleteUser(req.ID)
 	if err != nil {
@@ -168,7 +165,6 @@ func getUserHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
-	defer userManager.db.Close()
 
 	users, err := userManager.GetAllUsers()
 	if err != nil {
@@ -198,7 +194,6 @@ func getAllUsersHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
-	defer userManager.db.Close()
 
 	users, err := userManager.GetAllUsers()
 	if err != nil {
@@ -214,7 +209,6 @@ func getAllRoutesHandler(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 	}
-	defer userManager.db.Close()
 	routes, err := userManager.GetAllRoutes()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
@@ -228,7 +222,6 @@ func updateUserEndpointsHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
 		return
 	}
-	defer userManager.db.Close()
 	serverConfig, err := LoadServerConfig("./server.yaml")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, Response{Message: "Internal Server Error"})
