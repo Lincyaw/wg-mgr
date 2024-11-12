@@ -7,8 +7,9 @@ ip: "100.10.10.1/24"
 dns: "1.1.1.1,8.8.8.8"
 #table: "12345"
 mtu: 1450
+# remember to replace the 'ens18' to your own interface
 #pre_up: ""
-post_up: "iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE"
+post_up: "iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o ens18 -j MASQUERADE; iptables -t mangle -A FORWARD -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu"
 #pre_down: ""
-post_down: "iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE"
+post_down: "iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o ens18 -j MASQUERADE"
 ip_pool: "100.10.10.0/24"
