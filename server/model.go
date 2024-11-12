@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"strings"
+	"github.com/olekukonko/tablewriter"
+	"os"
 	"time"
 )
 
@@ -70,29 +71,33 @@ func formatBytes(bytes uint64) string {
 	}
 }
 
-// colorize 为字符串添加颜色
-func colorize(text, colorCode string) string {
-	return fmt.Sprintf("\033[%sm%s\033[0m", colorCode, text)
-}
-
 // String 格式化输出 UserTrafficList 为表格形式
 func (data UserTrafficList) String() string {
-	// 表头
-	header := fmt.Sprintf("%-15s | %-15s | %-15s | %-15s | %-20s", "UserID", "IP", "ReceiveBytes", "TransmitBytes", "LastHandshake")
-	divider := strings.Repeat("-", len(header))
-	var rows []string
-	rows = append(rows, header)
-	rows = append(rows, divider)
+	// 创建表格对象
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"UserID", "IP", "ReceiveBytes", "TransmitBytes", "LastHandshake"})
 
-	// 数据行
+	// 遍历数据
 	for _, d := range data {
-		receiveBytes := colorize(formatBytes(d.ReceiveBytes), "32")   // 绿色
-		transmitBytes := colorize(formatBytes(d.TransmitBytes), "34") // 蓝色
-		lastHandshake := d.LastHandShake.Format("2006-01-02 15:04:05")
-		row := fmt.Sprintf("%-15s | %-15s | %-15s | %-15s | %-20s",
-			d.UserID, d.IP, receiveBytes, transmitBytes, lastHandshake)
-		rows = append(rows, row)
+		lastHandshake := ""
+		if !d.LastHandShake.IsZero() {
+			lastHandshake = d.LastHandShake.Format("2006-01-02 15:04:05")
+		}
+
+		table.Append([]string{
+			d.UserID,
+			d.IP,
+			formatBytes(d.ReceiveBytes),
+			formatBytes(d.TransmitBytes),
+			lastHandshake,
+		})
 	}
 
-	return strings.Join(rows, "\n")
+	// 设置表格样式
+	table.SetBorder(true)
+	table.SetAutoWrapText(false)
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table.Render()
+
+	return "" // 表格已经渲染到 os.Stdout，返回空字符串
 }
