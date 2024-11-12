@@ -31,3 +31,10 @@ type UserConfig struct {
 	PreDown             string `json:"pre_down"`
 	PostDown            string `json:"post_down"`
 }
+
+type UserTrafficData struct {
+	UserID        string
+	IP            string
+	ReceiveBytes  uint64
+	TransmitBytes uint64
+}

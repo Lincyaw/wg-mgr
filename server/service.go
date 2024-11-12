@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"golang.zx2c4.com/wireguard/wgctrl"
 	"log"
 	"net"
 	"os/exec"
@@ -254,6 +255,50 @@ PublicKey = %s
 	}
 
 	return configBuilder.String(), nil
+}
+
+// GetAllUserTraffic 获取所有用户的流量数据
+func (um *UserManager) GetAllUserTraffic() ([]UserTrafficData, error) {
+	// 创建 wgctrl 客户端
+	client, err := wgctrl.New()
+	if err != nil {
+		return nil, fmt.Errorf("无法创建 WireGuard 控制器: %w", err)
+	}
+	defer client.Close()
+
+	// 获取系统上所有 WireGuard 接口信息
+	devices, err := client.Devices()
+	if err != nil {
+		return nil, fmt.Errorf("无法获取 WireGuard 设备信息: %w", err)
+	}
+
+	// 获取所有用户信息
+	users, err := um.GetAllUsers()
+	if err != nil {
+		return nil, fmt.Errorf("无法获取用户信息: %w", err)
+	}
+
+	// 将用户 IP 与流量数据关联
+	var trafficData []UserTrafficData
+	for _, user := range users {
+		for _, device := range devices {
+			for _, peer := range device.Peers {
+				// 检查用户 IP 是否匹配 Peer 的 AllowedIPs
+				for _, allowedIP := range peer.AllowedIPs {
+					if allowedIP.String() == user.IP+"/32" {
+						trafficData = append(trafficData, UserTrafficData{
+							UserID:        user.UserID,
+							IP:            user.IP,
+							ReceiveBytes:  uint64(peer.ReceiveBytes),
+							TransmitBytes: uint64(peer.TransmitBytes),
+						})
+					}
+				}
+			}
+		}
+	}
+
+	return trafficData, nil
 }
 
 // 生成密钥对
