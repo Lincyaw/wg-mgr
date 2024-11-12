@@ -1,5 +1,10 @@
 package main
 
+import (
+	"fmt"
+	"strings"
+)
+
 type ServerConfig struct {
 	ServerIP   string `yaml:"server_ip"`
 	Port       int    `yaml:"port"`
@@ -37,4 +42,22 @@ type UserTrafficData struct {
 	IP            string
 	ReceiveBytes  uint64
 	TransmitBytes uint64
+}
+type UserTrafficList []UserTrafficData
+
+func (data UserTrafficList) String() string {
+	// 表头
+	header := fmt.Sprintf("%-15s | %-15s | %-15s | %-15s", "UserID", "IP", "ReceiveBytes", "TransmitBytes")
+	divider := strings.Repeat("-", len(header))
+	var rows []string
+	rows = append(rows, header)
+	rows = append(rows, divider)
+
+	// 数据行
+	for _, d := range data {
+		row := fmt.Sprintf("%-15s | %-15s | %-15d | %-15d", d.UserID, d.IP, d.ReceiveBytes, d.TransmitBytes)
+		rows = append(rows, row)
+	}
+
+	return strings.Join(rows, "\n")
 }

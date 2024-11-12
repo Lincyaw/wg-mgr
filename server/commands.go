@@ -10,7 +10,6 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/k0kubun/pp"
 	"github.com/spf13/cobra"
 )
 
@@ -264,7 +263,7 @@ func Info() *cobra.Command {
 			if err != nil {
 				log.Fatal(err)
 			}
-			pp.Println(info)
+			fmt.Println(info.String())
 		},
 	}
 	return updateEndpointsCmd

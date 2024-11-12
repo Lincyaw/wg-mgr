@@ -258,7 +258,7 @@ PublicKey = %s
 }
 
 // GetAllUserTraffic 获取所有用户的流量数据
-func (um *UserManager) GetAllUserTraffic() ([]UserTrafficData, error) {
+func (um *UserManager) GetAllUserTraffic() (UserTrafficList, error) {
 	// 创建 wgctrl 客户端
 	client, err := wgctrl.New()
 	if err != nil {
